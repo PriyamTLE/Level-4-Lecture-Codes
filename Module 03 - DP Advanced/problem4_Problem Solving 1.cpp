@@ -1,62 +1,47 @@
-#include <bits/stdc++.h>
-using namespace std;
+class Solution {
+public:
+    long long numberOfPowerfulInt(long long start, long long finish, int limit,
+                                  string s) {
+        string low = to_string(start);
+        string high = to_string(finish);
+        int n = high.size();
+        low = string(n - low.size(), '0') + low;  // align digits
+        int pre_len = n - s.size();               // prefix length
 
-const long long INF = LLONG_MAX;
-
-struct Friend {
-    long long x, k;
-    int p;
-    Friend(long long x, long long k, int p) : x(x), k(k), p(p) {}
-};
-
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    int n, m;
-    long long b;
-    cin >> n >> m >> b;
-
-    vector<Friend> friends;
-    for (int i = 0; i < n; ++i) {
-        long long x, k;
-        int mm, p = 0;
-        cin >> x >> k >> mm;
-        for (int j = 0; j < mm; ++j) {
-            int skill;
-            cin >> skill;
-            p |= 1 << (skill - 1);
-        }
-        friends.emplace_back(x, k, p);
-    }
-
-    sort(friends.begin(), friends.end(), [](const Friend &a, const Friend &b) {
-        return a.k < b.k;
-    });
-
-    vector<long long> dp(1 << m, INF);
-    dp[0] = 0;
-    long long res = INF;
-
-    for (const auto& f : friends) {
-        vector<long long> new_dp = dp;
-        for (int mask = 0; mask < (1 << m); ++mask) {
-            if (dp[mask] < INF) {
-                int new_mask = mask | f.p;
-                new_dp[new_mask] = min(new_dp[new_mask], dp[mask] + f.x);
+        vector<long long> memo(n, -1);
+        function<long long(int, bool, bool)> dfs =
+            [&](int i, bool limit_low, bool limit_high) -> long long {
+            // recursive boundary
+            if (i == low.size()) {
+                return 1;
             }
-        }
-        dp = new_dp;
-        if (dp[(1 << m) - 1] < INF) {
-            res = min(res, dp[(1 << m) - 1] + b * f.k);
-        }
-    }
 
-    if (res == INF) {
-        cout << -1 << '\n';
-    } else {
-        cout << res << '\n';
-    }
+            if (!limit_low && !limit_high && memo[i] != -1) {
+                return memo[i];
+            }
 
-    return 0;
-}
+            int lo = limit_low ? low[i] - '0' : 0;
+            int hi = limit_high ? high[i] - '0' : 9;
+
+            long long res = 0;
+            if (i < pre_len) {
+                for (int digit = lo; digit <= min(hi, limit); digit++) {
+                    res += dfs(i + 1, limit_low && digit == lo,
+                               limit_high && digit == hi);
+                }
+            } else {
+                int x = s[i - pre_len] - '0';
+                if (lo <= x && x <= min(hi, limit)) {
+                    res =
+                        dfs(i + 1, limit_low && x == lo, limit_high && x == hi);
+                }
+            }
+
+            if (!limit_low && !limit_high) {
+                memo[i] = res;
+            }
+            return res;
+        };
+        return dfs(0, true, true);
+    }
+};
