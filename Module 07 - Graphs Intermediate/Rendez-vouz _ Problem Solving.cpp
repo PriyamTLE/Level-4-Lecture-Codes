@@ -1,70 +1,86 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <climits>
 
 using namespace std;
 
-const int N = 3e5 + 5;
+const long long INF = 1e14;
 
-vector<int> g[N];
-vector<int> sub_size(N);
-vector<int> intime(N), outtime(N);
+vector<long long> dijkstra(vector<vector<pair<int, int>>> &graph, int source, int n) {
+    vector<long long> distance(2 * n + 5, INF);
+    priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<pair<long long, int>>> pq;
+    
+    distance[source] = 0;
+    pq.push({0, source});
 
-int cur_time = 0;
+    while (!pq.empty()) {
+        pair<long long, int> current = pq.top();
+        pq.pop();
+        long long dist_u = current.first;
+        int u = current.second;
 
-void dfs(int node, int par)
-{
-    sub_size[node] = 1; //! helps in leaf nodes
-    intime[node] = cur_time++; //! intime of node
+        if (dist_u > distance[u]) continue;
 
-    for (auto child : g[node])
-    {
-        if (child == par)
-            continue;
-        dfs(child, node);
-        sub_size[node] += sub_size[child];
-    }
-
-    outtime[node] = cur_time++; //! outtime
-}
-
-bool is_ancestor(int node_a, int node_b) //! checks if node_a is ancestor of node_b
-{
-    if ((intime[node_a] <= intime[node_b]) and (outtime[node_a] >= outtime[node_b]))
-        return true;
-    return false;
-}
-
-int main()
-{
-    int n, x, y;
-    cin >> n >> x >> y;
-
-    for (int i = 0; i < n - 1; i++)
-    {
-        int a, b;
-        cin >> a >> b;
-
-        g[a].push_back(b);
-        g[b].push_back(a);
-    }
-
-    dfs(y, 0);
-
-    long long ans = (long long)(n) * (n - 1);
-
-    long long val = n;
-
-    for (auto child : g[y])
-    {
-        if (is_ancestor(child, x))
-        {
-            val -= sub_size[child];
-            break;
+        for (pair<int, int> &edge : graph[u]) {
+            int v = edge.first;
+            int weight = edge.second;
+            if (distance[v] > distance[u] + weight) {
+                distance[v] = distance[u] + weight;
+                pq.push({distance[v], v});
+            }
         }
     }
 
-    ans -= (long long)(sub_size[x]) * val;
+    return distance;
+}
 
-    cout << ans << "\n";
+int main() {
+    int test_cases;
+    cin >> test_cases;
+
+    while (test_cases--) {
+        int n, m, h;
+        cin >> n >> m >> h;
+
+        vector<vector<pair<int, int>>> graph(2 * n + 5);
+        vector<int> horses(h);
+        for (int i = 0; i < h; i++) {
+            cin >> horses[i];
+        }
+
+        for (int i = 0; i < m; i++) {
+            int a, b, w;
+            cin >> a >> b >> w;
+            graph[2 * a].push_back({2 * b, w});
+            graph[2 * b].push_back({2 * a, w});
+            graph[2 * a + 1].push_back({2 * b + 1, w / 2});
+            graph[2 * b + 1].push_back({2 * a + 1, w / 2});
+        }
+
+        for (int i = 1; i <= n; i++) {
+            graph[2 * i + 1].push_back({2 * i, 0});
+        }
+
+        for (int i = 0; i < h; i++) {
+            int x = horses[i];
+            graph[2 * x].push_back({2 * x + 1, 0});
+        }
+
+        vector<long long> dist_from_2 = dijkstra(graph, 2, n);
+        vector<long long> dist_from_2n = dijkstra(graph, 2 * n, n);
+
+        long long answer = INF;
+        for (int i = 2; i <= 2 * n + 1; i++) {
+            answer = min(answer, max(dist_from_2[i], dist_from_2n[i]));
+        }
+
+        if (answer == INF) {
+            answer = -1;
+        }
+
+        cout << answer << '\n';
+    }
 
     return 0;
 }
