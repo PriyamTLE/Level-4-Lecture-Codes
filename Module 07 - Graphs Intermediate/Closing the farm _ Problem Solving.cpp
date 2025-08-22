@@ -1,50 +1,85 @@
 #include <bits/stdc++.h>
-
 using namespace std;
 
-int main()
-{
-    int t;
-    cin >> t;
+vector<int> root;
+vector<int> sz;
+set<int> conCom;
 
-    while (t--)
-    {
-        int n;
-        cin >> n;
+int par(int x) {
+    if (x == root[x])
+        return x;
+    else
+        return root[x] = par(root[x]);
+}
 
-        vector<int> weights(n + 1), degree(n + 1);
+bool join(int a, int b) {
+    a = par(a);
+    b = par(b);
 
-        for (int i = 1; i <= n; i++)
-            cin >> weights[i];
+    if (a == b)
+        return false;
 
-        for (int i = 0; i < n - 1; i++)
-        {
-            int a, b;
-            cin >> a >> b;
+    if (sz[a] > sz[b]) swap(a, b);
 
-            degree[a]++;
-            degree[b]++;
-        }
+    sz[b] += sz[a];
 
-        priority_queue<int> pq;
-        for (int i = 1; i <= n; i++)
-        {
-            for (int j = 0; j < degree[i] - 1; j++)
-                pq.push(weights[i]);
-        }
+    conCom.erase(root[a]);
+    root[a] = b;
 
-        long long sum = accumulate(weights.begin(), weights.end(), 0LL);
+    return true;
+}
 
-        cout << sum << " ";
+int main() {
+    freopen("closing.in", "r", stdin);
+    freopen("closing.out", "w", stdout);
 
-        for (int i = 2; i < n; i++)
-        {
-            sum += pq.top();
-            pq.pop();
+    int n, m;
+    cin >> n >> m;
 
-            cout << sum << " ";
-        }
+    vector<int> g[n+1];
+    root.resize(n+1, 0);
+    sz.resize(n+1, 0);
 
-        cout << "\n";
+    for(int i = 1; i <= n; i++) {
+        root[i] = i;
+        sz[i] = 1;
     }
+
+    for(int i = 0; i < m; i++) {
+        int a, b;
+        cin >> a >> b;
+        g[a].push_back(b);
+        g[b].push_back(a);
+    }
+
+    vector<int> isOpen(n+1, 0);
+
+    vector<int> queries(n);
+
+    for(int i = 0; i < n; i++) cin >> queries[i];
+
+    vector<int> ans;
+
+    for(int i = n-1; i >= 0; i--) {
+        int node = queries[i];
+        conCom.insert(root[node]);
+        isOpen[node] = 1;
+
+        for(auto child : g[node]) {
+            if(isOpen[child]) {
+                join(node, child);
+            }
+        }
+
+        if(conCom.size() == 1) ans.push_back(1);
+        else ans.push_back(0);
+    }
+
+    reverse(ans.begin(), ans.end());
+
+    for(int i = 0; i < n; i++) {
+        cout << (ans[i] == 1 ? "YES" : "NO") << "\n";
+    }
+
+    return 0;
 }
